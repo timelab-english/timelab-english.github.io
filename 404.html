@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>TIME LAB</title>
+<meta name="robots" content="noindex">
+<script>
+  // GitHub Pages отдаёт этот файл на любой неизвестный путь. Переводим путь в hash-маршрут приложения:
+  // /timelab/verbs/lib → /timelab/#/verbs/lib
+  (function () {
+    var base = '__BASE_PATH__';
+    var path = location.pathname;
+    var rest = path.indexOf(base) === 0 ? path.slice(base.length) : path.replace(/^\//, '');
+    rest = rest.replace(/\/+$/, '').replace(/[^\w\/|-]/g, '');
+    location.replace(base + (rest ? '#/' + rest : '') + (location.hash && !rest ? location.hash : ''));
+  })();
+</script>
+</head>
+<body style="background:#141518;color:#efe8da;font-family:sans-serif">
+<p>Переходим в TIME LAB…</p>
+</body>
+</html>

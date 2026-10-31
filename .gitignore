@@ -1,0 +1,13 @@
+# окружение и секреты
+.env
+.env.*
+!.env.example
+# генерируется сборкой
+js/config.js
+dist/
+# системное
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+.claude/
