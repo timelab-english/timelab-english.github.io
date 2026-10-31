@@ -358,16 +358,16 @@ function pfOverview() {
   </section>`;
 }
 function pfTenses() {
-  return `<section class="tgrid">${ORDER.map(t => {
-    const T = TENSE[t], on = ST.unlocked.includes(t), L = ST.labs[t] || { stages:{} }, rs = rulesOf(t).filter(r => r.cat !== 'fx');
+  return `<section class="tgrid">${[...ORDER, ...SPECIAL_IDS].map(t => {
+    const T = TENSE[t], on = isOpen(t), L = ST.labs[t] || { stages:{} }, rs = rulesOf(t).filter(r => r.cat !== 'fx');
     const ms = rs.map(r => ST.rules[r.id] && ST.rules[r.id].seen >= 4 ? mastery(r.id) : null).filter(x => x != null);
     const avg = ms.length ? ms.reduce((a, b) => a + b, 0) / ms.length : null, boss = (L.stages.boss && L.stages.boss.best) || 0;
     const by = { start:'стартовое', campaign:'по кампании', level:'по выбранному уровню', diag:'по диагностике', manual:'вручную' }[L.by] || 'по кампании';
     return `<div class="tcard ${on ? '' : 'off'} ${L.badge ? 'badge' : ''}"><div class="mono kicker">LAB ${pad2(T.n)}${t === ST.current ? ' · ИЗУЧАЕТСЯ' : ''}</div><b>${T.name}</b>
-      <span class="sub">${on ? `открыто ${by}` : 'закрыто'}${L.badge ? ' · значок владения' : ''}</span>
+      <span class="sub">${isSpecial(t) ? 'спецлаборатория · открыта всегда' : on ? `открыто ${by}` : 'закрыто'}${L.badge ? ' · значок владения' : ''}${L.stages.pass && L.stages.pass.passed ? ' · пассив ✓' : ''}</span>
       <span class="mono sub">этапы ${STAGES.filter(s => L.stages[s.id] && L.stages[s.id].passed).length}/8 · босс ${boss ? boss + '%' : '—'} · правила ${avg == null ? 'мало данных' : pct(avg)}</span>${bar(avg, avg >= 0.8 ? 'good' : avg >= 0.6 ? 'mid' : 'low')}
       <button class="btn sm ${on ? 'pri' : 'ghost'}" data-act="lab" data-arg="${t}">${on ? 'В лабораторию' : 'Посмотреть'}</button></div>`; }).join('')}</section>
-    ${ORDER.filter(t => ST.unlocked.includes(t) || rulesOf(t).some(r => ST.rules[r.id])).map(t => `<section class="block"><div class="block-h"><h3>${TENSE[t].name}</h3><span class="mono sub">освоение по последним ответам</span></div><div class="tscroll"><table class="st-t"><thead><tr><th>Правило</th><th>Освоение</th><th>Попыток</th><th>Повторение</th></tr></thead><tbody>${rulesOf(t).map(r => { const s = ST.rules[r.id]; const m = mastery(r.id); return `<tr><td>${r.name}</td><td>${s && s.seen >= 4 ? pct(m) : s ? 'мало данных' : '—'} ${bar(m, m >= 0.8 ? 'good' : m >= 0.6 ? 'mid' : 'low')}</td><td class="mono">${s ? s.seen : 0}</td><td class="mono sub">${s && s.due ? relDue(s.due) : '—'}</td></tr>`; }).join('')}</tbody></table></div></section>`).join('')}`;
+    ${[...ORDER, ...SPECIAL_IDS].filter(t => ST.unlocked.includes(t) || RULES_LIST.some(r => r.t === t && ST.rules[r.id])).map(t => `<section class="block"><div class="block-h"><h3>${TENSE[t].name}</h3><span class="mono sub">освоение по последним ответам</span></div><div class="tscroll"><table class="st-t"><thead><tr><th>Правило</th><th>Освоение</th><th>Попыток</th><th>Повторение</th></tr></thead><tbody>${RULES_LIST.filter(r => r.t === t).map(r => { const s = ST.rules[r.id]; const m = mastery(r.id); return `<tr><td>${r.name}</td><td>${s && s.seen >= 4 ? pct(m) : s ? 'мало данных' : '—'} ${bar(m, m >= 0.8 ? 'good' : m >= 0.6 ? 'mid' : 'low')}</td><td class="mono">${s ? s.seen : 0}</td><td class="mono sub">${s && s.due ? relDue(s.due) : '—'}</td></tr>`; }).join('')}</tbody></table></div></section>`).join('')}`;
 }
 function pfHistory() {
   return `<section class="block"><div class="block-h"><h3>Занятия и тесты</h3><span class="mono sub">${ST.history.length}</span></div>${ST.history.length ? `<div class="tscroll"><table class="hist"><tbody>${ST.history.slice().reverse().map(histRow).join('')}</tbody></table></div>` : '<p class="empty">Пока пусто.</p>'}</section>

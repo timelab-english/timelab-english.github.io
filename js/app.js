@@ -76,7 +76,9 @@ const ACH = [
   { id:'diag', name:'Диагност', d:'Пройди добровольную диагностику' },
   { id:'murphy', name:'Комната Murphy', d:'Заверши тренировку в комнате Murphy' },
   { id:'review', name:'Возвращение', d:'Заверши занятие-повторение' },
-  { id:'dialog', name:'Собеседник', d:'Заверши диалог с персонажем' }
+  { id:'dialog', name:'Собеседник', d:'Заверши диалог с персонажем' },
+  { id:'passive', name:'Пассивный залог', d:'Пройди бонус Passive Voice в любой лаборатории' },
+  { id:'special', name:'Спецагент', d:'Пройди финальное испытание в спецлаборатории' }
 ];
 function grant(id) { if (ST.ach[id]) return; ST.ach[id] = Date.now(); const a = ACH.find(x => x.id === id); addXP(25); toast('Достижение · ' + a.name, 'acid'); }
 function checkAch() {
@@ -150,7 +152,11 @@ function unlockChecks(t) {
   ];
   return { ok:checks.every(c => c.ok), checks };
 }
-const nextTense = t => ORDER[ORDER.indexOf(t) + 1];
+const nextTense = t => { const i = ORDER.indexOf(t); return i < 0 ? undefined : ORDER[i + 1]; };
+// спецлаборатории (модальные глаголы, will / going to) открыты всегда и не входят в кампанию
+const isOpen = t => isSpecial(t) || ST.unlocked.includes(t);
+// бонус Passive открывается после 4 этапов лаборатории (или сразу в режиме «пропускать знакомое»)
+const passOpen = t => PASS_T.includes(t) && ST.unlocked.includes(t) && (passedCount(t) >= 4 || !!ST.plan.skipKnown || stagePassed(t, 'pass'));
 function nextStage(t) { return STAGES.find(s => !stagePassed(t, s.id) && (s.id !== 'boss' || bossOpen(t))) || null; }
 
 /* ---------- маршрутизация ---------- */
@@ -249,7 +255,7 @@ function vFooter() { return `<footer class="foot wrap"><span class="mono">TIME L
 
 /* ---------- главная: карта ---------- */
 function labTile(t) {
-  const T = TENSE[t], on = ST.unlocked.includes(t), L = lab(t), cur = ST.current === t;
+  const T = TENSE[t], on = isOpen(t), L = lab(t), cur = ST.current === t;
   const st = L.badge ? 'Значок получен' : on ? `${passedCount(t)}/8 этапов` : 'Закрыто';
   return `<button class="tile ${on ? 'open' : 'locked'} ${cur ? 'cur' : ''} ${L.badge ? 'done' : ''}" data-act="lab" data-arg="${t}">
     <span class="tile-n mono">${pad2(T.n)}</span>
@@ -314,6 +320,7 @@ function vHome() {
       ${ROWS.map((rw, ri) => `<div class="map-row"><span class="map-rl mono">${rw}</span>${[0,1,2,3].map(ci => labTile(TENSES.find(x => x.row === ri && x.col === ci).id)).join('')}</div>`).join('')}
     </div>
   </section>
+  ${vSpecials()}
   <section class="dash">
     <div class="panel span2">
       <div class="panel-h"><h4>Освоение правил · ${T.name}</h4><span class="mono sub">по последним ответам</span></div>
@@ -362,11 +369,11 @@ function histRow(h) {
 
 /* ---------- лаборатория ---------- */
 function vLab(t) {
-  const T = TENSE[t], on = ST.unlocked.includes(t), L = lab(t), uc = unlockChecks(t), nx = nextTense(t);
+  const T = TENSE[t], on = isOpen(t), L = lab(t), uc = unlockChecks(t), nx = nextTense(t), sp = isSpecial(t);
   const murphyT = ['past','pastc'].includes(t);
   const head = `<button class="back" data-act="go" data-arg="home">← Карта</button>
     <section class="lab-h">
-      <div><div class="mono kicker">LAB ${pad2(T.n)} · ${ROWS[T.row]} / ${COLS[T.col]}</div><h1 class="lab-name">${T.name}</h1><p class="lead">${T.ru} — ${T.meaning}.</p>
+      <div><div class="mono kicker">LAB ${pad2(T.n)} · ${sp ? 'СПЕЦЛАБОРАТОРИЯ · ВНЕ КАМПАНИИ' : ROWS[T.row] + ' / ' + COLS[T.col]}</div><h1 class="lab-name">${T.name}</h1><p class="lead">${T.ru} — ${T.meaning}.</p>
       ${L.badge ? '<span class="badge-own mono">ЗНАЧОК ВЛАДЕНИЯ ВРЕМЕНЕМ</span>' : ''}${on && L.by && !['start','campaign'].includes(L.by) ? `<span class="mono sub">${L.by === 'manual' ? 'открыто вручную' : L.by === 'diag' ? 'открыто по диагностике' : 'открыто по выбранному уровню'} · освоение — по ответам</span>` : ''}</div>
       <div class="lab-tl">${tlSVG(T.tl, 'big')}</div>
     </section>
@@ -389,11 +396,12 @@ function vLab(t) {
       <div class="modes">${modeBtn(t, 'warm', '5 мин', 'Разминка', '6 заданий')}${modeBtn(t, 'normal', '10–15', 'Тренировка', '12 заданий')}${modeBtn(t, 'full', '20–30', 'Занятие', '20 заданий')}${modeBtn(t, 'free', '∞', 'Свободно', 'без лимита')}${modeBtn(t, 'short', 'S', 'Короткий тест', '6 вопросов')}${modeBtn(t, 'test', 'T', 'Тест', '12 вопросов')}</div>
       <div class="quick"><span class="mono sub">Мини-игры</span><button class="chipbtn" data-act="blitz" data-arg="${t}">Блиц 60 секунд</button><button class="chipbtn" data-act="tlgame" data-arg="${t}">Временная линия</button><button class="chipbtn" data-act="go" data-arg="dialogs">Диалоги</button></div>
     </section>
-    <section class="dash"><div class="panel span2"><div class="panel-h"><h4>Правила этого времени</h4></div><ul class="rules">${rulesOf(t).map(ruleRow).join('')}</ul></div>
-      <div class="panel span2 unlock ${uc.ok ? 'ready' : ''}"><div class="panel-h"><h4>Переход к следующему времени</h4></div>
+    ${PASS_T.includes(t) ? passSection(t) : ''}
+    <section class="dash"><div class="panel span2"><div class="panel-h"><h4>Правила ${sp ? 'темы' : 'этого времени'}</h4></div><ul class="rules">${rulesOf(t).map(ruleRow).join('')}</ul></div>
+      <div class="panel span2 unlock ${uc.ok ? 'ready' : ''}"><div class="panel-h"><h4>${sp ? 'Значок владения темой' : 'Переход к следующему времени'}</h4></div>
         <ul class="checks">${uc.checks.map(c => `<li class="${c.ok ? 'ok' : ''}"><span class="ck" aria-hidden="true"></span>${esc(c.label)}</li>`).join('')}</ul>
         ${nx ? (ST.unlocked.includes(nx) ? `<p class="sub">${TENSE[nx].name} уже открыт.</p>` : `<button class="btn acid" data-act="unlock" data-arg="${t}" ${uc.ok ? '' : 'disabled'}>Открыть следующее время · ${TENSE[nx].name}</button>
-        <p class="sub">${uc.ok ? 'Готово. Переход произойдёт только после нажатия.' : 'Пока условия не выполнены, тренировки по этому времени бесконечны.'}</p>`) : '<p class="sub">Это последнее время кампании.</p>'}
+        <p class="sub">${uc.ok ? 'Готово. Переход произойдёт только после нажатия.' : 'Пока условия не выполнены, тренировки по этому времени бесконечны.'}</p>`) : (sp ? '<p class="sub">Спецлаборатория не влияет на открытие времён. Значок выдаётся, когда выполнены все условия.</p>' : '<p class="sub">Это последнее время кампании.</p>')}
       </div></section></main>`;
 }
 function fxBlock(sym, name, f, ex) { return `<div class="fx"><span class="fx-sym">${sym}</span><span class="mono fx-l">${name}</span><code class="fx-f">${esc(f)}</code><span class="fx-ex">${glossText(ex)} ${spk(ex)}</span></div>`; }
@@ -455,6 +463,32 @@ function cfgDialog(id) {
   const d = DIALOGS.find(x => x.id === id);
   const pre = d.steps.map(s => genChat(RULES[s.rule], s, d)).filter(Boolean);
   return { kind:'dialog', t:d.t, pre, n:pre.length, dialog:d, title:`Диалог · ${d.who}: ${d.title}` };
+}
+// бонус Passive: короткий разбор + 10 новых заданий
+function cfgPass(t) {
+  const id = t + '_pass', c = { kind:'pass', t, rules:[id], stage:'any', n:10, title:`Бонус: Passive · ${TENSE[t].name}` };
+  const pre = [Object.assign(genLesson(id), { intro:true, chip:'Passive · ' + TENSE[t].name })];
+  for (let i = 0; i < 30 && pre.length < 11; i++) { const x = pickTask(c, pre.slice(1)); if (x) pre.push(x); }
+  c.pre = pre; c.n = pre.length - 1;
+  return c;
+}
+function passSection(t) {
+  const P = PASS_INFO[t], s = lab(t).stages.pass, open = passOpen(t), T = TENSE[t];
+  return `<section class="block pass-b"><div class="block-h"><h3>Бонус: Passive Voice</h3><span class="mono sub">необязательно · не влияет на переход · порог 75%</span></div>
+    <div class="pass-in">${fxBlock('P', 'Пассив · ' + T.name, P.formula, P.ex)}
+      <div class="pass-r"><p class="sub">${open ? 'Короткий разбор и 10 заданий: перевод актива в пассив, выбор формы, поиск ошибки, конструктор, перевод.' : 'Откроется после 4 пройденных этапов этой лаборатории (или сразу, если в плане включено «пропускать знакомые темы»).'}</p>
+      <p class="mono sub">${s ? `лучший результат ${s.best}%${s.passed ? ' · пройдено' : ''}` : 'ещё не проходился'}</p>
+      <button class="btn ${s && s.passed ? 'ghost' : 'pri'}" data-act="pass" data-arg="${t}" ${open ? '' : 'disabled'}>${s && s.passed ? 'Ещё раз' : 'Начать бонус'}</button></div></div></section>`;
+}
+function vSpecials() {
+  const chips = PASS_T.map(t => {
+    const s = lab(t).stages.pass, open = passOpen(t);
+    const st = s && s.passed ? 'пройдено' : open ? (s ? `лучший ${s.best}%` : 'открыто') : ST.unlocked.includes(t) ? 'после 4 этапов' : 'лаборатория закрыта';
+    return `<button class="pchip ${s && s.passed ? 'ok' : open ? 'open' : ''}" data-act="lab" data-arg="${t}"><b>${TENSE[t].name}</b><small class="mono">${st}</small></button>`;
+  }).join('');
+  return `<section class="block"><div class="block-h"><h3>Спецлаборатории</h3><span class="mono sub">дополнительные темы · открыты всегда · не влияют на кампанию</span></div>
+    <div class="spec">${SPECIAL_IDS.map(labTile).join('')}
+      <div class="tile open pass-tile"><span class="tile-n mono">+P</span><span class="tile-name">Passive Voice</span><span class="tile-ru">бонус-урок внутри лабораторий: be + V3</span><div class="pchips">${chips}</div></div></div></section>`;
 }
 function cfgFormula(t) { return { kind:'practice', mode:'formula', t, tenses:[t], stage:'formula', n:6, title:`Проверь себя · формулы ${TENSE[t].name}` }; }
 
@@ -539,9 +573,9 @@ function mountSession() {
   const r = RULES[t.rule];
   if (t.type === 'lesson') {
     box.innerHTML = `<div class="task card lesson"><div class="t-head"><span class="chip warn">${esc(t.chip)}</span><span class="mono t-mech">${MECH_NAME.lesson}</span></div>
-      <h3 class="t-instr">Три ошибки подряд в правиле «${esc(r.name)}». Разберём его коротко.</h3>
+      <h3 class="t-instr">${t.intro ? `Новая тема · ${esc(t.chip)}` : `Три ошибки подряд в правиле «${esc(r.name)}». Разберём его коротко.`}</h3>
       <div class="les"><p>${esc(r.explain)}</p><div class="les-f"><span class="lbl">Формула</span><code>${esc(r.formula)}</code></div><div class="les-e"><span class="lbl">Пример</span>${glossText(r.example)} ${spk(r.example)}</div>
-      <p class="sub">Дальше: одно простое задание на это правило, затем то же правило в новой ситуации. Через несколько заданий правило вернётся, и оно уже стоит в плане повторения на завтра.</p></div>
+      ${t.intro ? '<p class="sub">Дальше — задания на эту тему. Ошибки разберём сразу, а правило попадёт в план повторения.</p>' : `<p class="sub">Дальше: одно простое задание на это правило, затем то же правило в новой ситуации. Через несколько заданий правило вернётся, и оно уже стоит в плане повторения на завтра.</p>`}</div>
       <div class="t-ctrl"><button class="btn pri" data-act="next">Понятно, дальше</button></div></div>`;
     UI = null; return;
   }
@@ -878,6 +912,13 @@ function finishSession() {
   let diag = null;
   if (SES.kind === 'diag' && total) { ST.diagDone = true; grant('diag'); diag = diagResult(SES.results); ST.plan.levelDiag = diag; }
   if (SES.kind === 'murphy' && total) grant('murphy');
+  if (SES.kind === 'boss' && isSpecial(SES.t) && stagePassed(SES.t, 'boss')) grant('special');
+  if (SES.kind === 'pass' && total) {
+    const L = lab(SES.t), s = L.stages.pass || (L.stages.pass = { best:0, passed:false, runs:0 });
+    s.runs++; s.best = Math.max(s.best, p);
+    if (p >= 75 && total >= 5) { if (!s.passed) { s.passed = true; addXP(30); notes.push(`Бонус Passive Voice · ${TENSE[SES.t].name} пройден.`); } grant('passive'); }
+    else notes.push('Для прохождения бонуса нужно 75%. Можно повторить — задания будут новыми.');
+  }
   if (SES.kind === 'review' && total) grant('review');
   if (SES.kind === 'dialog' && total === SES.n) grant('dialog');
   checkAch(); save();
@@ -918,12 +959,13 @@ function regenCfg(c) {
   if (c.kind === 'diag') return cfgDiag();
   if (c.kind === 'tlgame') return cfgTimeline(c.t === ST.current ? null : c.t);
   if (c.kind === 'dialog') return cfgDialog(c.dialog.id);
+  if (c.kind === 'pass') return cfgPass(c.t);
   return Object.assign({}, c);
 }
 
 /* ---------- формулы ---------- */
 function vFormulas(t) {
-  const T = TENSE[t], det = ST.settings.fxDetail, on = ST.unlocked.includes(t);
+  const T = TENSE[t], det = ST.settings.fxDetail, on = isOpen(t);
   const cards = [
     ['Как образуется утверждение (+) в ' + T.name + '?', T.f.pos, T.ex.pos.join(' ')],
     ['Как образуется отрицание (−) в ' + T.name + '?', T.f.neg, T.ex.neg.join(' ')],
@@ -933,10 +975,11 @@ function vFormulas(t) {
   if (T.be) cards.push(['Как работает be в ' + T.name + '?', T.be.pos, T.be.q]);
   return `<main class="wrap fxv">
     <div class="block-h"><h1 class="h1">Формулы</h1><div class="seg" role="group" aria-label="Режим"><button class="${det ? '' : 'on'}" data-act="fxmode" data-arg="0">Шпаргалка</button><button class="${det ? 'on' : ''}" data-act="fxmode" data-arg="1">Подробно</button></div></div>
-    <div class="tabs">${TENSES.map(x => `<button class="tab ${x.id === t ? 'on' : ''} ${ST.unlocked.includes(x.id) ? '' : 'dim'}" data-act="go" data-arg="formulas|${x.id}"><span class="mono">${pad2(x.n)}</span> ${x.name}</button>`).join('')}</div>
+    <div class="tabs">${[...TENSES, ...SPECIALS].map(x => `<button class="tab ${x.id === t ? 'on' : ''} ${isOpen(x.id) ? '' : 'dim'}" data-act="go" data-arg="formulas|${x.id}"><span class="mono">${pad2(x.n)}</span> ${x.name}</button>`).join('')}</div>
     <section class="fx-head"><div><h2 class="lab-name">${T.name}</h2><p class="lead">${T.ru} — ${T.meaning}.</p></div>${tlSVG(T.tl, 'big')}</section>
     <section class="fx3">${fxBlock('+', 'Утверждение', T.f.pos, T.ex.pos.join(' '))}${fxBlock('−', 'Отрицание', T.f.neg, T.ex.neg.join(' '))}${fxBlock('?', 'Вопрос', T.f.q, T.ex.q.join(' '))}</section>
     ${T.be ? `<section class="be"><div class="mono kicker">ОТДЕЛЬНАЯ СХЕМА · BE (${t === 'ps' ? 'am / is / are' : 'was / were'})</div><div class="fx3">${fxBlock('+', 'Утверждение', T.be.pos, T.be.ex[0])}${fxBlock('−', 'Отрицание', T.be.neg, T.be.ex[2])}${fxBlock('?', 'Вопрос', T.be.q, T.be.ex[1])}</div>${det ? `<p class="why">${esc(T.be.why)}</p>` : ''}</section>` : ''}
+    ${PASS_T.includes(t) ? `<section class="be"><div class="mono kicker">БОНУС · PASSIVE VOICE · ${T.name.toUpperCase()}</div><div class="fx3">${fxBlock('P', 'Пассив: be + V3', PASS_INFO[t].formula, PASS_INFO[t].ex)}</div>${det ? `<p class="why">${esc(RULES[t + '_pass'].explain)}</p>` : ''}</section>` : ''}
     ${det ? `<section class="detail"><h3>Почему формула работает так</h3><p class="why">${esc(T.why)}</p><ul class="dl">${T.detail.map(d => `<li>${esc(d)}</li>`).join('')}</ul><p class="sub">Маркеры: ${T.markers.map(esc).join(' · ')}</p><p class="sub">Вопрос со словом: ${glossText(T.ex.wh)}</p></section>` : `<p class="sub">Маркеры: ${T.markers.map(esc).join(' · ')}</p>`}
     <section class="block"><div class="block-h"><h3>Карточки с переворотом</h3><span class="mono sub">нажми, чтобы перевернуть · сначала узнать, потом вспомнить, потом применить</span></div>
       <div class="flips">${cards.map(c => `<button class="flip" data-act="flip"><span class="flip-in"><span class="flip-f"><span class="mono sub">ВОПРОС</span><b>${esc(c[0])}</b></span><span class="flip-b"><code>${esc(c[1])}</code><span>${esc(c[2])}</span></span></span></button>`).join('')}</div>
@@ -1192,6 +1235,7 @@ const ACT = {
   tlgame(t) { startSession(cfgTimeline(t || null)); },
   dialog(id) { startSession(cfgDialog(id)); },
   murphy(k) { startSession(cfgMurphy(k)); },
+  pass(t) { if (passOpen(t)) startSession(cfgPass(t)); },
   fxtest(t) { startSession(cfgFormula(t)); },
   check() { doCheck(); },
   next() { goNext(); },

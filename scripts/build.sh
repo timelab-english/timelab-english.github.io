@@ -44,7 +44,7 @@ fi
 rm -rf "$OUT"
 mkdir -p "$OUT/js"
 cp "$ROOT/index.html" "$OUT/index.html"
-for f in data engine verbs speech app cloud account; do cp "$ROOT/js/$f.js" "$OUT/js/$f.js"; done
+for f in data engine verbs topics speech app cloud account; do cp "$ROOT/js/$f.js" "$OUT/js/$f.js"; done
 cat > "$OUT/js/config.js" <<CFG
 // создано scripts/build.sh — не редактировать вручную
 window.TIMELAB_CONFIG = {
@@ -56,7 +56,7 @@ window.TIMELAB_CONFIG = {
 CFG
 # версии файлов в адресах скриптов: после обновления сайта браузер не возьмёт старый код из кеша
 hash_of() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -c1-10; else shasum -a 256 "$1" | cut -c1-10; fi; }
-for f in config data engine verbs speech app cloud account; do
+for f in config data engine verbs topics speech app cloud account; do
   h="$(hash_of "$OUT/js/$f.js")"
   sed "s#src=\"js/$f.js\"#src=\"js/$f.js?v=$h\"#" "$OUT/index.html" > "$OUT/index.tmp" && mv "$OUT/index.tmp" "$OUT/index.html"
 done
@@ -65,7 +65,7 @@ sed "s#__BASE_PATH__#${BASE_PATH}#g" "$ROOT/404.html" > "$OUT/404.html"
 touch "$OUT/.nojekyll"
 
 # --- контроль результата ---
-for f in index.html 404.html js/config.js js/data.js js/engine.js js/verbs.js js/speech.js js/app.js js/cloud.js js/account.js; do
+for f in index.html 404.html js/config.js js/data.js js/engine.js js/verbs.js js/topics.js js/speech.js js/app.js js/cloud.js js/account.js; do
   [[ -s "$OUT/$f" ]] || fail "нет файла dist/$f"
 done
 grep -q 'src="js/account.js?v=' "$OUT/index.html" || fail "index.html не подключает js/account.js"

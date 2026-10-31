@@ -522,7 +522,7 @@ function genInput(rule, f, fl) {
 let TR_RECENT = [];
 function genTranslate(rule) {
   let items = TRANSLATE.filter(x => x[1] === rule.id);
-  if (!items.length) items = TRANSLATE.filter(x => x[0] === rule.t);
+  if (!items.length) items = TRANSLATE.filter(x => x[0] === rule.t && !(RULES[x[1]] || {}).x);
   if (!items.length) return null;
   const fresh = items.filter(x => !TR_RECENT.includes(x[2]));
   const it = pick(fresh.length ? fresh : items);
@@ -712,10 +712,12 @@ function genLesson(ruleId) {
 }
 
 /* ---------- диспетчер ---------- */
-const MECH_DIFF = { choice:2, tf:1, multi:3, fix:3, build:3, input:3, translate:4, chat:3, timeline:3, swapc:2, stat:2, ingc:2, two:3, fchoice:1, fbuild:2 };
+const MECH_DIFF = { sense:2, choice:2, tf:1, multi:3, fix:3, build:3, input:3, translate:4, chat:3, timeline:3, swapc:2, stat:2, ingc:2, two:3, fchoice:1, fbuild:2 };
 function genSpec(rule, spec, diff) {
   const [m, a, b, c] = spec;
   let t = null;
+  // правила дополнительных тем (js/topics.js) генерируют задания сами
+  if (rule.gen) { t = rule.gen(rule, spec, diff); if (t) { t.mech = m; if (diff && !t.diff) t.diff = diff; } return t; }
   switch (m) {
     case 'choice': t = genChoice(rule, a, b || [], c || {}, diff || 2); break;
     case 'tf': t = genTF(rule, a, b || [], c || {}); break;
@@ -745,10 +747,10 @@ function specFits(rule, spec, stage) {
     case 'neg': return f === 'neg';
     case 'q': return f === 'q' || f === 'wh' || f === 'choiceq';
     case 'fix': return m === 'fix' || m === 'tf';
-    case 'dist': return ['timeline','swapc','stat','multi','two'].includes(m);
+    case 'dist': return ['timeline','swapc','stat','multi','two','sense'].includes(m);
     case 'free': return ['translate','chat','input','build'].includes(m);
-    case 'easy': return ['choice','tf','swapc','stat','ingc'].includes(m) || (m === 'two' && f !== 'build');
-    case 'quick': return ['choice','tf','swapc','stat','ingc','fix'].includes(m) || (m === 'two' && f !== 'build');
+    case 'easy': return ['choice','tf','swapc','stat','ingc','sense'].includes(m) || (m === 'two' && f !== 'build');
+    case 'quick': return ['choice','tf','swapc','stat','ingc','fix','sense'].includes(m) || (m === 'two' && f !== 'build');
   }
   return true;
 }

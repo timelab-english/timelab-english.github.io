@@ -74,7 +74,7 @@ const Cloud = (() => {
       merge:(L, R, rn) => rn ? R : L
     },
     tense_progress:{
-      pk:'user_id,tense_id', ids:S => ORDER.filter(t => S.unlocked.includes(t) || S.labs[t]),
+      pk:'user_id,tense_id', ids:S => [...ORDER, ...SPECIAL_IDS].filter(t => S.unlocked.includes(t) || S.labs[t]),
       get:(S, t) => { const L = S.labs[t] || {}; return { unlocked:S.unlocked.includes(t), by:L.by || (t === 'ps' ? 'start' : 'campaign'), badge:!!L.badge, stages:JSON.parse(JSON.stringify(L.stages || {})) }; },
       put:(S, t, f) => { const L = S.labs[t] || (S.labs[t] = { stages:{}, badge:false }); L.stages = f.stages; L.badge = f.badge; L.by = f.by;
         if (f.unlocked && !S.unlocked.includes(t)) S.unlocked.push(t); S.unlocked.sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)); },

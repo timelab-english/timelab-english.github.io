@@ -431,7 +431,8 @@ RULES_LIST.forEach(r => {
   if (r.cat === 'fx') { r.explain = 'Формулы: утверждение — '+T.f.pos+'; отрицание — '+T.f.neg+'; вопрос — '+T.f.q+'.'; r.example = T.ex.pos[0]+' '+T.ex.neg[0]+' '+T.ex.q[0]; r.formula = T.f.pos; }
 });
 const RULES = Object.fromEntries(RULES_LIST.map(r => [r.id, r]));
-const rulesOf = t => RULES_LIST.filter(r => r.t === t);
+// правила с флагом x (бонус Passive) не входят в этапы и условия перехода лаборатории
+const rulesOf = t => RULES_LIST.filter(r => r.t === t && !r.x);
 
 /* ---------- этапы лаборатории ---------- */
 const STAGES = [
