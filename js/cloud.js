@@ -58,7 +58,7 @@ const Cloud = (() => {
     user_settings:{
       pk:'user_id', ids:() => [ME],
       get:S => JSON.parse(JSON.stringify(S.settings)),
-      put:(S, id, f) => { S.settings = Object.assign(defaultState().settings, f); },
+      put:(S, id, f) => { S.settings = Object.assign(defaultState().settings, f); if (!f.voiceDef) { S.settings.voiceName = f.voiceName || DEFAULT_VOICE; S.settings.voiceDef = 1; } },
       row:(u, id, f) => ({ user_id:u, settings:f }),
       from:r => [ME, r.settings || {}],
       merge:(L, R, rn) => rn ? R : L

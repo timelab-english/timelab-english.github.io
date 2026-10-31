@@ -10,11 +10,12 @@ const GUEST_KEY = 'timelab.v1', ACTIVE_KEY = 'timelab.active';
 const keyFor = id => id ? 'timelab.u.' + id : GUEST_KEY;
 let STORE_KEY = GUEST_KEY;
 const DAY = 864e5, INTV = [1, 3, 7, 14, 30];
+const DEFAULT_VOICE = 'Google UK English Female';
 function defaultPlan() { return { exp:null, method:null, levelSelf:null, levelDiag:null, goal:'tenses', len:'normal', perWeek:null, reviewOld:true, skipKnown:false, start:'ps', set:0 }; }
 function defaultState() {
   return { v:2, created:Date.now(), updated:0, onboarded:false, xp:0, streak:0, best:0, unlocked:['ps'], current:'ps', labs:{}, rules:{}, verbs:{},
     verbsActive:START_VERBS.slice(), history:[], errors:[], attempts:[], ach:{},
-    settings:{ rm:false, retry:false, gloss:true, voice:true, fxDetail:false, voiceAuto:false, voiceName:'', accent:'en-GB', rate:1 },
+    settings:{ rm:false, retry:false, gloss:true, voice:true, fxDetail:false, voiceAuto:false, voiceName:DEFAULT_VOICE, voiceDef:1, accent:'en-GB', rate:1 },
     profile:{ name:'', avatar:'a1' }, plan:defaultPlan(),
     starterDone:false, diagDone:false, totals:{ tasks:0, fixed:0, sessions:0 } };
 }
@@ -31,6 +32,8 @@ function upgrade(s) {
   if (!TENSE[o.current]) o.current = o.unlocked[0];
   o.history.forEach(h => { if (!h.id) h.id = newId(); });
   if (s.v === 1) o.updated = s.updated || Date.now();
+  // голос по умолчанию выставляется явно один раз; дальше выбор пользователя не трогаем
+  if (!(s.settings && s.settings.voiceDef)) { o.settings.voiceName = (s.settings && s.settings.voiceName) || DEFAULT_VOICE; o.settings.voiceDef = 1; }
   return o;
 }
 function load(key) {
