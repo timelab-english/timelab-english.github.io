@@ -547,7 +547,7 @@ function mountSession() {
     <h3 class="t-instr">${esc(t.instr)}</h3><div class="t-body" id="t-body"></div>
     <div class="t-hint" id="t-hint" hidden></div>
     <div class="t-msg" id="t-msg" hidden></div>
-    ${SES.blitz ? '' : `<div class="t-ctrl"><button class="btn ghost" data-act="hint">Подсказка</button><button class="btn pri" data-act="check">Проверить</button></div>`}</div>`;
+    ${SES.blitz && (t.type === 'tf' || (['choice','chat'].includes(t.type) && t.labels)) ? '' : SES.blitz ? '<div class="t-ctrl"><button class="btn pri" data-act="check">Проверить</button></div>' : `<div class="t-ctrl"><button class="btn ghost" data-act="hint">Подсказка</button><button class="btn pri" data-act="check">Проверить</button></div>`}</div>`;
   UI = mountTask(t, document.getElementById('t-body'));
   const inp = box.querySelector('input[type=text]'); if (inp && !matchMedia('(pointer:coarse)').matches) inp.focus();
 }
@@ -582,7 +582,7 @@ function mountTask(t, el) {
       return { get:() => { const v = el.querySelector('#ans-in').value.trim(); return v || null; } };
     case 'tf': {
       el.innerHTML = `<p class="sent">${t.html}</p><div class="tf"><button type="button" class="opt tfb" data-v="1" aria-pressed="false">Верно</button><button type="button" class="opt tfb" data-v="0" aria-pressed="false">Неверно</button></div>`;
-      el.querySelectorAll('.tfb').forEach(b => b.addEventListener('click', () => { if (SES.checked) return; el.querySelectorAll('.tfb').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); sel = b.dataset.v === '1'; }));
+      el.querySelectorAll('.tfb').forEach(b => b.addEventListener('click', () => { if (SES.checked) return; el.querySelectorAll('.tfb').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); sel = b.dataset.v === '1'; if (SES.blitz) doCheck(); }));
       return { get:() => sel };
     }
     case 'multi': {

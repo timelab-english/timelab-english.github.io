@@ -23,6 +23,10 @@ const Speech = (() => {
     if (opts.voiceName) { const v = voices.find(x => x.name === opts.voiceName); if (v) return v; }
     const norm = l => l.replace('_', '-').toLowerCase();
     const want = opts.accent.toLowerCase();
+    // голос по умолчанию: Google UK English Female (Chrome), для американского — Google US English
+    const fav = want === 'en-us' ? ['Google US English'] : ['Google UK English Female'];
+    const f = voices.find(v => fav.includes(v.name));
+    if (f) return f;
     return voices.find(v => norm(v.lang) === want && v.localService) || voices.find(v => norm(v.lang) === want) || voices.find(v => norm(v.lang).startsWith('en')) || null;
   }
 

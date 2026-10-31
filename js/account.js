@@ -411,7 +411,7 @@ function pfSettings() {
       ${chk('voiceAuto', 'Автоматическая озвучка', 'Произносить правильный ответ после проверки и правильно собранные глаголы. Сами по себе экраны не озвучиваются.')}
       <div class="fgrid">
         <label class="fld"><span class="lbl">Произношение</span>${sel('vc-acc', [['en-GB','British English'],['en-US','American English']], s.accent, 'data-vc="accent"')}</label>
-        <label class="fld"><span class="lbl">Голос</span>${sel('vc-name', [['', 'автоматически'], ...voices.map(v => [v.name, `${v.name} · ${v.lang}`])], s.voiceName, 'data-vc="voiceName"')}</label>
+        <label class="fld"><span class="lbl">Голос</span>${sel('vc-name', [['', 'автоматически (Google UK English Female, если есть)'], ...voices.map(v => [v.name, `${v.name} · ${v.lang}`])], s.voiceName, 'data-vc="voiceName"')}</label>
       </div>
       <span class="lbl">Скорость</span><div class="seg" role="group" aria-label="Скорость">${[0.75, 1, 1.25].map(r => `<button class="${+s.rate === r ? 'on' : ''}" data-act="setRate" data-arg="${r}">${r}x</button>`).join('')}</div>
       <div class="row"><button class="btn sm ghost" data-act="say" data-arg="I usually drink coffee in the morning. Yesterday I went to an exhibition.">${SPK_ICON} Проверить голос</button><button class="btn sm ghost" data-act="sayAgain">Повторить последнее</button></div></section>
